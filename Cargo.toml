@@ -1,0 +1,27 @@
+[package]
+name = "filecursor"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Aggressively simple, zero-copy byte-position file reader."
+license = "MIT"
+keywords = ["mmap", "reader", "byte"]
+categories = ["parser-implementations", "encoding"]
+repository = "https://github.com/AECVerge/filecursor"
+
+[dependencies]
+memchr = { version = "2", optional = true }
+memmap2 = "0.9"
+
+[features]
+# "generation" lets a reader tell whether the file was replaced after it was
+# opened, so a writer can "read after update". Turn it off for a pure byte
+# reader that never stats the path: --no-default-features.
+default = ["generation", "simd"]
+generation = []
+# "simd" uses memchr for a SIMD-accelerated newline scan when building the line
+# index. Without it, an equivalent byte-scanning fallback is used, so the
+# behaviour (and the line_index public API) is identical either way.
+simd = ["dep:memchr"]
+
+[dev-dependencies]

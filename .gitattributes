@@ -1,0 +1,23 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Rust source — always LF
+*.rs text eol=lf
+# TOML config files — always LF
+Cargo.toml text eol=lf
+*.toml text eol=lf
+Cargo.lock text eol=lf
+# Python script
+*.py text eol=lf
+# Markdown — always LF
+*.md text eol=lf
+# Shell scripts (if any)
+*.sh text eol=lf
+# YAML — always LF
+*.yml text eol=lf
+*.yaml text eol=lf
+# JSON — always LF
+*.json text eol=lf
+# Git files
+.gitattributes text eol=lf
+.gitignore text eol=lf

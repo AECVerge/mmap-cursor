@@ -34,7 +34,11 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 
 ## Conventions
 
-- Byte positions are `u64` offsets from the start of the snapshot.
+- Byte positions are `usize` offsets from the start of the snapshot. This keeps
+  them directly indexable into the memory-mapped snapshot; the largest file a
+  snapshot can address is therefore bounded by the platform's `usize`. The
+  serialized width of a position (via the `serde` feature) is likewise
+  platform-dependent.
 - All positions are relative to the opened snapshot; they become invalid once
   the file is replaced, so re-open to re-read.
 - Line/column are 1-based. The index splits on `\n`, `\r\n`, or a lone `\r` as

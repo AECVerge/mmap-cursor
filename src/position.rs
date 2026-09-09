@@ -1,8 +1,12 @@
 //! Byte-position primitives: [`BytePos`] and [`ByteRange`].
 //!
-//! [`BytePos`] is a `u64` byte offset from the start of a snapshot; [`ByteRange`]
-//! is a half-open `[start, end)` pair of positions. Both are `Copy`, comparable
-//! and hashable, and derive `serde::Serialize` under the `serde` feature.
+//! [`BytePos`] is a `usize` byte offset from the start of a snapshot;
+//! [`ByteRange`] is a half-open `[start, end)` pair of positions. Using `usize`
+//! makes positions directly indexable into the memory-mapped snapshot on the
+//! current platform, so the largest addressable file is bounded by the platform's
+//! `usize` (on 32-bit targets that means smaller files are supported). Both are
+//! `Copy`, comparable and hashable, and derive `serde::Serialize` under the
+//! `serde` feature.
 
 use std::fmt;
 use std::io::{self, Error, ErrorKind};
@@ -10,24 +14,24 @@ use std::io::{self, Error, ErrorKind};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-/// A byte offset into source text, stored as a `u64`.
+/// A byte offset into source text, stored as a `usize`.
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BytePos(u64);
+pub struct BytePos(usize);
 
 impl BytePos {
     /// The zero byte offset.
     pub const ZERO: Self = BytePos(0);
 
-    /// Construct a [`BytePos`] from a `u64` offset.
+    /// Construct a [`BytePos`] from a `usize` offset.
     #[inline]
-    pub const fn new(n: u64) -> Self {
+    pub const fn new(n: usize) -> Self {
         BytePos(n)
     }
 
-    /// Return the raw `u64` offset.
+    /// Return the raw `usize` offset.
     #[inline]
-    pub const fn to_u64(self) -> u64 {
+    pub const fn to_usize(self) -> usize {
         self.0
     }
 
@@ -142,22 +146,22 @@ mod tests {
     // --- BytePos ---
 
     #[test]
-    fn byte_pos_new_and_to_u64_round_trip() {
-        for n in [0u64, 1, 42, u64::MAX - 1] {
-            assert_eq!(BytePos::new(n).to_u64(), n);
+    fn byte_pos_new_and_to_usize_round_trip() {
+        for n in [0usize, 1, 42, usize::MAX - 1] {
+            assert_eq!(BytePos::new(n).to_usize(), n);
         }
     }
 
     #[test]
     fn byte_pos_zero_default_and_equality() {
-        assert_eq!(BytePos::ZERO.to_u64(), 0);
+        assert_eq!(BytePos::ZERO.to_usize(), 0);
         assert_eq!(BytePos::default(), BytePos::ZERO);
         assert_eq!(BytePos::new(0), BytePos::ZERO);
         assert_ne!(BytePos::new(1), BytePos::ZERO);
     }
 
     #[test]
-    fn byte_pos_total_order_matches_the_u64_value() {
+    fn byte_pos_total_order_matches_the_usize_value() {
         use std::cmp::Ordering;
         let lo = BytePos::new(10);
         let hi = BytePos::new(20);
@@ -196,8 +200,8 @@ mod tests {
     fn byte_pos_addition_and_subtraction_compose() {
         let base = BytePos::new(100);
         let delta = BytePos::new(30);
-        assert_eq!((base + delta).to_u64(), 130);
-        assert_eq!((base - delta).to_u64(), 70);
+        assert_eq!((base + delta).to_usize(), 130);
+        assert_eq!((base - delta).to_usize(), 70);
         assert_eq!(((base + delta) - delta), base);
         assert_eq!((base + BytePos::ZERO), base);
         assert_eq!((base - BytePos::ZERO), base);
@@ -206,7 +210,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "attempt to add with overflow")]
     fn byte_pos_addition_overflows() {
-        let _ = BytePos::new(u64::MAX) + BytePos::new(1);
+        let _ = BytePos::new(usize::MAX) + BytePos::new(1);
     }
 
     #[test]
@@ -230,9 +234,9 @@ mod tests {
     #[test]
     fn byte_range_exposes_bounds_and_len_for_a_valid_range() {
         let r = ByteRange::new(BytePos::new(10), BytePos::new(25)).unwrap();
-        assert_eq!(r.start().to_u64(), 10);
-        assert_eq!(r.end().to_u64(), 25);
-        assert_eq!(r.len().to_u64(), 15);
+        assert_eq!(r.start().to_usize(), 10);
+        assert_eq!(r.end().to_usize(), 25);
+        assert_eq!(r.len().to_usize(), 15);
         assert!(!r.is_empty());
     }
 
@@ -263,11 +267,10 @@ mod tests {
     }
 
     #[test]
-    fn byte_range_survives_the_full_u64_space_edge() {
-        // A half-open range spanning the entire u64 domain is representable:
-        // positions are pure offsets, so this is valid even though no real file
-        // is that large.
-        let hi = BytePos::new(u64::MAX);
+    fn byte_range_spans_the_whole_usize_space() {
+        // A half-open range spanning the entire addressable domain is
+        // representable: positions are pure offsets into the snapshot.
+        let hi = BytePos::new(usize::MAX);
         let r = ByteRange::new(BytePos::ZERO, hi).unwrap();
         assert_eq!(r.len(), hi);
         assert_eq!(r.start(), BytePos::ZERO);

@@ -18,8 +18,8 @@ use crate::BytePos;
 /// search. Positions and results are relative to the snapshot that the index
 /// was built from.
 pub struct LineIndex {
-    line_starts: Vec<u64>,
-    len: u64,
+    line_starts: Vec<usize>,
+    len: usize,
 }
 
 impl LineIndex {
@@ -30,7 +30,7 @@ impl LineIndex {
     /// a `\r\n` pair is counted as a column of the line it terminates.
     pub fn new(bytes: &[u8]) -> Self {
         let mut line_starts = Vec::with_capacity(bytes.len() / 88 + 1);
-        line_starts.push(0u64);
+        line_starts.push(0usize);
 
         #[cfg(feature = "simd")]
         {
@@ -40,7 +40,7 @@ impl LineIndex {
                     // terminates the line, so skip this index.
                     continue;
                 }
-                line_starts.push(i as u64 + 1);
+                line_starts.push(i + 1);
             }
         }
 
@@ -52,13 +52,13 @@ impl LineIndex {
                     b'\r' => {
                         if bytes.get(i + 1) == Some(&b'\n') {
                             // Consume the whole `\r\n` pair as one terminator.
-                            line_starts.push(i as u64 + 2);
+                            line_starts.push(i + 2);
                             i += 2;
                             continue;
                         }
-                        line_starts.push(i as u64 + 1);
+                        line_starts.push(i + 1);
                     }
-                    b'\n' => line_starts.push(i as u64 + 1),
+                    b'\n' => line_starts.push(i + 1),
                     _ => {}
                 }
                 i += 1;
@@ -67,7 +67,7 @@ impl LineIndex {
 
         Self {
             line_starts,
-            len: bytes.len() as u64,
+            len: bytes.len(),
         }
     }
 
@@ -79,7 +79,7 @@ impl LineIndex {
     /// 0-based line index containing `offset`, or `None` if `offset` is past
     /// EOF.
     pub fn line_for_offset(&self, offset: BytePos) -> Option<usize> {
-        let offset = offset.to_u64();
+        let offset = offset.to_usize();
         if offset > self.len {
             return None;
         }
@@ -94,11 +94,11 @@ impl LineIndex {
     ///
     /// `column` is measured in bytes from the line start. Returns `None` for a
     /// position past EOF.
-    pub fn line_column(&self, offset: BytePos) -> Option<(u64, u64)> {
+    pub fn line_column(&self, offset: BytePos) -> Option<(usize, usize)> {
         let line = self.line_for_offset(offset)?;
         let start = self.line_starts[line];
-        let column = offset.to_u64().saturating_sub(start);
-        Some((line as u64 + 1, column + 1))
+        let column = offset.to_usize().saturating_sub(start);
+        Some((line + 1, column + 1))
     }
 }
 

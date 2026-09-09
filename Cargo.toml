@@ -12,6 +12,7 @@ repository = "https://github.com/AECVerge/filecursor"
 [dependencies]
 memchr = { version = "2", optional = true }
 memmap2 = "0.9"
+serde = { version = "1", optional = true, features = ["derive"] }
 
 [features]
 # "generation" lets a reader tell whether the file was replaced after it was
@@ -19,6 +20,10 @@ memmap2 = "0.9"
 # reader that never stats the path: --no-default-features.
 default = ["generation", "simd"]
 generation = []
+# "serde" enables `Serialize` on the position types (`BytePos`, `ByteRange`).
+# It is opt-in so a consumer that never serializes positions doesn't pull in
+# serde at all.
+serde = ["dep:serde"]
 # "simd" uses memchr for a SIMD-accelerated newline scan when building the line
 # index. Without it, an equivalent byte-scanning fallback is used, so the
 # behaviour (and the line_index public API) is identical either way.

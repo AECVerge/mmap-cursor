@@ -47,6 +47,9 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 
 - `generation` (default ON): detect whether the file was replaced after it was
   opened, for "read after update". This is the only code that stats the path.
+- `serde` (default OFF): derive `Serialize` on the position types
+  (`BytePos`, `ByteRange`). Opt-in so consumers that never serialize positions
+  don't pull in `serde`.
 - `simd` (default ON): use `memchr` for a SIMD-accelerated newline scan while
   building the line index. Without it (e.g. `--no-default-features`) a
   byte-scanning fallback is used; the index and the public API are identical

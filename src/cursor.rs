@@ -44,7 +44,9 @@ impl<'src> Cursor<'src> {
     /// Peek at the nth byte ahead (0 = current).
     #[inline]
     pub fn peek_n_ahead(&self, n: usize) -> Option<u8> {
-        self.source.get(self.pos.to_usize() + n).copied()
+        self.source
+            .get(self.pos.to_usize().saturating_add(n))
+            .copied()
     }
 
     /// Slice the source from `start` to `end` (both absolute byte positions).
@@ -65,7 +67,7 @@ impl<'src> Cursor<'src> {
         if self.is_eof() {
             return None;
         }
-        let end = self.eof.min(self.pos + BytePos::new(n));
+        let end = self.pos.saturating_add(BytePos::new(n)).min(self.eof);
         let slice = self
             .slice(ByteRange::new(self.pos, end))
             .expect("byte range is within the snapshot");
@@ -91,22 +93,25 @@ impl<'src> Cursor<'src> {
         self.pos = pos;
     }
 
-    /// Advance one byte and return the consumed byte.
+    /// Advance one byte, clamping at EOF.
     #[inline]
     pub fn advance(&mut self) {
-        self.pos = self.eof.min(self.pos + BytePos::new(1));
+        self.pos = self.pos.saturating_add(BytePos::new(1)).min(self.eof);
     }
 
-    /// Advance `n` bytes. Panics if past EOF in debug.
+    /// Advance `n` bytes, clamping at EOF.
     #[inline]
     pub fn advance_n_ahead(&mut self, n: usize) {
-        self.pos = self.eof.min(self.pos + BytePos::new(n));
+        self.pos = self.pos.saturating_add(BytePos::new(n)).min(self.eof);
     }
 
     /// Skip given something. Return if succeeded.
     pub fn advance_sth(&mut self, sth: &[u8]) -> bool {
         if self.rest().is_some_and(|r| r.starts_with(sth)) {
-            self.pos = self.eof.min(self.pos + BytePos::new(sth.len()));
+            self.pos = self
+                .pos
+                .saturating_add(BytePos::new(sth.len()))
+                .min(self.eof);
             return true;
         }
         false

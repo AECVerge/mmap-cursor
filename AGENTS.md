@@ -34,6 +34,11 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
   restating the guarantee above. Do not add `unsafe` elsewhere.
 - Reads never panic: out-of-range or overflowing positions return `io::Error`
   (or `None` where documented). Keep all reads bounds-checked.
+- Arithmetic on positions is the caller's own computation: the `BytePos`
+  operators panic on overflow in **every** profile (implemented over
+  `checked_add`/`checked_sub`, not `usize`'s debug-only check) and document that.
+  No code inside the crate uses panicking arithmetic — internal advances use
+  `BytePos::saturating_add`, clamped to EOF.
 
 ## Conventions
 
@@ -67,6 +72,8 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 - `cargo build`
 - `cargo test`
 - `cargo test --all-targets --no-default-features`
+- `cargo test --release --all-targets` (overflow checks are off in release by
+  default, so this catches profile-dependent panic/overflow behaviour)
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo fmt --all -- --check`
 - `cargo doc --no-deps --all-features`

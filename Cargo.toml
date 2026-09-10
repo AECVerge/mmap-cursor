@@ -1,5 +1,5 @@
 [package]
-name = "filecursor"
+name = "mmap-cursor"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.92"
@@ -7,7 +7,7 @@ description = "Aggressively simple, zero-copy byte-position file reader."
 license = "MIT"
 keywords = ["mmap", "reader", "byte"]
 categories = ["parser-implementations", "encoding"]
-repository = "https://github.com/AECVerge/filecursor"
+repository = "https://github.com/AECVerge/mmap-cursor"
 
 [dependencies]
 memchr = { version = "2", optional = true }

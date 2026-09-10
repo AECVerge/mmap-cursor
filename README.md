@@ -1,4 +1,4 @@
-# filecursor
+# mmap-cursor
 
 Aggressively simple, **zero-copy, byte-position reader**. Open a file into a
 read-only memory-mapped snapshot, move a byte cursor, read `&[u8]` slices by

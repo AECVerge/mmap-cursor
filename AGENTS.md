@@ -18,6 +18,9 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 - No reference resolution, object graph, or geometry.
 - No writing, locking, or concurrency control. File replacement and write
   safety are the caller's (harness) responsibility.
+- No change, staleness, or generation detection: noticing that a file was
+  replaced and re-opening to read the new version is the caller's job. The crate
+  never re-stats the path it was opened from.
 
 ## Safety contract (single source of truth; do not weaken)
 
@@ -49,8 +52,6 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 
 ## Feature flags
 
-- `generation` (default ON): detect whether the file was replaced after it was
-  opened, for "read after update". This is the only code that stats the path.
 - `serde` (default OFF): derive `Serialize` on the position types
   (`BytePos`, `ByteRange`). Opt-in so consumers that never serialize positions
   don't pull in `serde`.
@@ -58,8 +59,8 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
   building the line index. Without it (e.g. `--no-default-features`) a
   byte-scanning fallback is used; the index and the public API are identical
   either way.
-- `--no-default-features` builds a pure byte reader that neither stats the path
-  nor pulls the `memchr` dependency.
+- `--no-default-features` builds a pure byte reader that pulls no optional
+  dependency and never touches the file path after `open`.
 
 ## Build / test / lint / docs
 
@@ -77,4 +78,4 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 - Any change to the safety contract or the atomic-rename assumption must update
   the crate-level docs **and** this file.
 - Keep tests covering: the empty file, out-of-range and overflowing positions,
-  `\n`/`\r\n`/lone-`\r` line handling, and generation staleness.
+  and `\n`/`\r\n`/lone-`\r` line handling.

@@ -2,10 +2,15 @@ use std::fmt;
 
 use crate::{BytePos, ByteRange};
 
-/// A one-directional byte cursor over a [`ByteFile`] snapshot.
+/// A one-directional byte cursor over a snapshot of bytes.
 ///
-/// Reading advances the internal position; seeking moves it explicitly. Reads
-/// are short (they never fail on reaching EOF — they return what's available).
+/// Reading advances the internal position and [`seek`](Self::seek) moves it
+/// explicitly. The cursor never moves past the end of the bytes it was created
+/// from: every method that would step over EOF stops there instead. Reads are
+/// short — they don't fail on reaching EOF, they return what's available.
+///
+/// `ByteFile::cursor` creates one over a file snapshot; [`Cursor::new`] takes any
+/// `&[u8]`.
 pub struct Cursor<'src> {
     source: &'src [u8],
     pos: BytePos,
@@ -47,7 +52,8 @@ impl<'src> Cursor<'src> {
         self.source.get(self.pos.to_usize()).copied()
     }
 
-    /// Peek at the nth byte ahead (0 = current).
+    /// Peek at the `n`th byte ahead (0 = current), or `None` if that lands at or
+    /// past the end of the snapshot. `n` may be arbitrarily large.
     #[inline]
     pub fn peek_n_ahead(&self, n: usize) -> Option<u8> {
         self.source
@@ -56,6 +62,9 @@ impl<'src> Cursor<'src> {
     }
 
     /// Slice the source from `start` to `end` (both absolute byte positions).
+    ///
+    /// Returns `None` if the range runs past the end of the snapshot: a range is
+    /// taken whole or not at all.
     pub fn slice(&self, range: ByteRange) -> Option<&'src [u8]> {
         if range.end() > self.eof {
             return None;
@@ -63,12 +72,12 @@ impl<'src> Cursor<'src> {
         Some(&self.source[range.start().to_usize()..range.end().to_usize()])
     }
 
-    /// Read up to `size` bytes starting at the cursor position and advance past
+    /// Read up to `n` bytes starting at the cursor position and advance past
     /// them.
     ///
     /// Returns `None` if the cursor is already at EOF. Otherwise returns the
-    /// bytes read (fewer than `size` when near EOF, empty for `size == 0`) and
-    /// advances the cursor past them.
+    /// bytes read — fewer than `n` when near EOF, empty when `n == 0`, in which
+    /// case the cursor does not move — and advances the cursor past them.
     pub fn slice_n_ahead(&mut self, n: usize) -> Option<&'src [u8]> {
         if self.is_eof() {
             return None;
@@ -81,7 +90,8 @@ impl<'src> Cursor<'src> {
         Some(slice)
     }
 
-    /// Return the remaining source from the current position to EOF.
+    /// Return the remaining source from the current position to EOF, or `None`
+    /// when the cursor is already at EOF.
     #[inline]
     pub fn rest(&self) -> Option<&'src [u8]> {
         if self.is_eof() {

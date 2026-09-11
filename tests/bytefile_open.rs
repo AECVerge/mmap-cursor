@@ -281,7 +281,13 @@ fn an_unreadable_file_is_an_io_error() {
     assert_eq!(fs::read(&path).unwrap(), b"locked\n");
 }
 
-#[cfg(unix)]
+// Every Unix except macOS accepts arbitrary bytes in a filename. macOS requires
+// names to be valid UTF-8, so the fixture below cannot even be created there:
+// `fs::write` fails with `EILSEQ` (errno 92) before `ByteFile::open` is ever
+// reached. That is a property of the platform, not of this crate, so the test is
+// confined to the platforms where the case is representable — do not widen it
+// back to a bare `#[cfg(unix)]`.
+#[cfg(all(unix, not(target_os = "macos")))]
 #[test]
 fn a_non_utf8_path_can_be_opened() {
     use std::ffi::OsString;

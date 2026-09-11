@@ -5,13 +5,6 @@
 //! makes positions directly indexable into the memory-mapped snapshot on the
 //! current platform, so the largest addressable file is bounded by the platform's
 //! `usize` (on 32-bit targets that means smaller files are supported).
-//! [`BytePos`] is totally ordered; both types are `Copy`, `Eq` and `Hash`, and
-//! derive `serde::Serialize` under the `serde` feature.
-//!
-//! Arithmetic on positions is plain integer arithmetic: [`BytePos`] implements
-//! `Add`/`Sub` and both panic on overflow instead of wrapping (see the operators'
-//! `# Panics` sections). The checked and saturating methods are the value-
-//! reporting counterparts of the operators.
 
 use std::fmt;
 
@@ -152,10 +145,10 @@ pub struct ByteRange {
 impl ByteRange {
     /// Construct a range from a start and end position.
     ///
-    /// Because the fields are private, a valid range is only built through this
-    /// constructor, its fallible sibling [`ByteRange::try_new`],
-    /// [`ByteRange::EMPTY`] or [`BytePos::as_range`], so every `ByteRange` value
-    /// obeys `start <= end` by construction.
+    /// A valid range is only built through this constructor, its fallible
+    /// sibling [`ByteRange::try_new`], [`ByteRange::EMPTY`] or
+    /// [`BytePos::as_range`], so every `ByteRange` value obeys `start <= end`
+    /// by construction.
     ///
     /// # Panics
     ///
@@ -209,18 +202,11 @@ impl ByteRange {
         self.end
     }
 
-    /// Length of the range in bytes.
-    ///
-    /// Returned as a [`BytePos`] so that a length and an offset share one type;
-    /// use [`BytePos::to_usize`] for the raw number.
-    ///
-    /// This is total: the `start <= end` invariant is upheld by every
-    /// constructor, and the subtraction saturates rather than panicking, so this
-    /// cannot fail however the range was built.
+    /// Length of the range in bytes returned as a usize.
     #[inline]
     #[must_use]
-    pub fn len(&self) -> BytePos {
-        self.end.saturating_sub(self.start)
+    pub fn len(&self) -> usize {
+        self.end.saturating_sub(self.start).to_usize()
     }
 
     /// If this is an empty range.
@@ -415,7 +401,7 @@ mod tests {
         assert_eq!(r.start(), at);
         assert_eq!(r.end(), at);
         assert!(r.is_empty());
-        assert_eq!(r.len(), BytePos::ZERO);
+        assert_eq!(r.len(), 0);
     }
 
     // --- ByteRange ---
@@ -425,7 +411,7 @@ mod tests {
         let r = ByteRange::new(BytePos::new(10), BytePos::new(25));
         assert_eq!(r.start().to_usize(), 10);
         assert_eq!(r.end().to_usize(), 25);
-        assert_eq!(r.len().to_usize(), 15);
+        assert_eq!(r.len(), 15);
         assert!(!r.is_empty());
     }
 
@@ -434,7 +420,7 @@ mod tests {
         let at = BytePos::new(50);
         let r = ByteRange::new(at, at);
         assert!(r.is_empty());
-        assert_eq!(r.len(), BytePos::ZERO);
+        assert_eq!(r.len(), 0);
         assert_eq!(r.start(), at);
         assert_eq!(r.end(), at);
     }
@@ -444,7 +430,7 @@ mod tests {
         let r = ByteRange::try_new(BytePos::new(10), BytePos::new(25)).unwrap();
         assert_eq!(r.start().to_usize(), 10);
         assert_eq!(r.end().to_usize(), 25);
-        assert_eq!(r.len().to_usize(), 15);
+        assert_eq!(r.len(), 15);
     }
 
     #[test]
@@ -501,7 +487,7 @@ mod tests {
         assert_eq!(r.start(), BytePos::ZERO);
         assert_eq!(r.end(), BytePos::ZERO);
         assert!(r.is_empty());
-        assert_eq!(r.len(), BytePos::ZERO);
+        assert_eq!(r.len(), 0);
         // The cross-constructor invariant: `EMPTY` is exactly `ZERO.as_range()`,
         // so every route to an empty range agrees.
         assert_eq!(r, BytePos::ZERO.as_range());
@@ -512,7 +498,7 @@ mod tests {
         assert_eq!(ByteRange::default(), ByteRange::EMPTY);
         assert_eq!(ByteRange::default(), BytePos::ZERO.as_range());
         assert!(ByteRange::default().is_empty());
-        assert_eq!(ByteRange::default().len(), BytePos::ZERO);
+        assert_eq!(ByteRange::default().len(), 0);
     }
 
     #[test]
@@ -521,7 +507,7 @@ mod tests {
         // representable: positions are pure offsets into the snapshot.
         let hi = BytePos::new(usize::MAX);
         let r = ByteRange::new(BytePos::ZERO, hi);
-        assert_eq!(r.len(), hi);
+        assert_eq!(r.len(), hi.to_usize());
         assert_eq!(r.start(), BytePos::ZERO);
         assert_eq!(r.end(), hi);
         assert!(!r.is_empty());

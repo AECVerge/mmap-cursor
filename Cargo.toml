@@ -8,6 +8,7 @@ license = "MIT"
 keywords = ["mmap", "reader", "byte"]
 categories = ["parser-implementations", "encoding"]
 repository = "https://github.com/AECVerge/mmap-cursor"
+exclude = ["/.github", "/AGENTS.md"]
 
 [dependencies]
 memchr = { version = "2", optional = true }

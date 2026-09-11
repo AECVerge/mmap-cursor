@@ -18,6 +18,9 @@ Cargo.lock text eol=lf
 *.yaml text eol=lf
 # JSON — always LF
 *.json text eol=lf
+# Example fixtures — always LF, so the examples report identical byte offsets
+# and line/column numbers on every platform.
+examples/fixtures/* text eol=lf
 # Git files
 .gitattributes text eol=lf
 .gitignore text eol=lf

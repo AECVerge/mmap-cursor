@@ -1,0 +1,23 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('sample'),'2;1');
+FILE_NAME('sample.ifc','2026-06-03T10:00:00',('Author'),('AECVerge'),'AECVerge','AECVerge','');
+FILE_SCHEMA(('IFC4'));
+ENDSEC;
+DATA; /* this is a comment */
+#1=IFCPERSON($,'John',$,$,$,$,$,$);
+#2=IFCPERSON($,$,$,$,$,$,$,$);
+#3=IFCWALL('uid_0001',$,'ExampleWall',$,$,$,$,$,$);
+#4=IFCBUILDINGSTOREY('GroundFloor',$,$,$,$,$,$,$,$,$);
+#5=IFCBUILDINGSTOREY('FirstFloor',$,$,$,$,$,$,$,$,$);
+#6=IFCRELAGGREGATES('rel',$,$,$,#4,(#3));
+#7=IFCPROPERTYSINGLEVALUE('FireRating',$,$,$);
+#8=IFCPROPERTYSINGLEVALUE('AboveGround',$,IFCLOGICAL(.U.),$);
+#9=IFCDIMENSIONALEXPONENTS(1,0,0,0,0,0,0);
+#10=IFCCARTESIANPOINT((0.,0.,0.));
+#11=IFCSIUNIT(*,.LENGTHMEASUREUNIT.,$,.METRE.);
+#12=IFCACTORROLE(.SUPPLIER.,/* this is a inline comment */$,$);
+#13=IFCSITE('site',$,$,$,$,$,$,$,$,(3,5),(2,5),$,$,$);
+#14=IFCPROPERTYSINGLEVALUE('Length',$,IFCPOSITIVELENGTHMEASURE(1.5),$);
+ENDSEC
+END-ISO-10303-21;

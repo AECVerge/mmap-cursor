@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A superseded push cancels the run it replaces instead of queueing a second full
+# matrix behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing here writes to the repository, so ask for the read-only token.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, ${{ matrix.features }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The feature axis is platform-independent, so the full cross product is
+        # built on Linux only. Windows and macOS exist for the platform-specific
+        # tests in `tests/`: the `#[cfg(windows)]` share-mode denial, the
+        # `#[cfg(unix)]` permission and non-UTF-8-path cases, and macOS's
+        # non-4-KiB page size. Every feature set exercises those equally.
+        os:
+          - ubuntu-latest
+        features:
+          - "--all-features"
+          - "--no-default-features"
+          - "--no-default-features --features simd"
+          - "--no-default-features --features serde"
+        include:
+          - os: windows-latest
+            features: "--all-features"
+          - os: macos-latest
+            features: "--all-features"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      # `fmt` and `clippy` take no feature flags, so each runs once: clippy still
+      # sees every `cfg`-gated platform path, once per OS.
+      - name: fmt
+        if: matrix.os == 'ubuntu-latest' && matrix.features == '--all-features'
+        run: cargo fmt --all -- --check
+      - name: clippy
+        if: matrix.features == '--all-features'
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      # `--all-targets` does not include doctests, so they need their own run,
+      # under the matrix's feature set, like every other test step.
+      - name: doctest
+        run: cargo test --doc ${{ matrix.features }} --locked
+      - name: test
+        run: cargo test --all-targets ${{ matrix.features }} --locked
+      # Overflow checks are off in release by default, so the debug matrix alone
+      # cannot see profile-dependent behaviour in position arithmetic. One
+      # release run is enough to cover it.
+      - name: test (release)
+        if: matrix.os == 'ubuntu-latest' && matrix.features == '--all-features'
+        run: cargo test --all-targets --release --locked
+
+  # The declared MSRV is a promise to consumers, so it is compiled and tested
+  # rather than assumed. The action's `@rev` selects the toolchain, so this line
+  # and `rust-version` in Cargo.toml must move together; the lower bound is
+  # currently set by `edition = "2024"`.
+  msrv:
+    name: msrv (1.85.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - uses: Swatinem/rust-cache@v2
+      - name: test (msrv, all features)
+        run: cargo test --all-targets --all-features --locked
+      # The no-default-features build compiles the fallback newline scan instead,
+      # which is different code and gets a turn on the MSRV too.
+      - name: test (msrv, no default features)
+        run: cargo test --all-targets --no-default-features --locked
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: doc
+        run: cargo doc --no-deps --all-features --locked
+        env:
+          RUSTDOCFLAGS: -D warnings

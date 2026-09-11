@@ -138,6 +138,17 @@ impl ByteRange {
     /// Returns an [`io::Error`] of kind
     /// [`InvalidInput`](io::ErrorKind::InvalidInput) if `start` is greater than
     /// `end`, instead of panicking.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use filecursor::{BytePos, ByteRange};
+    ///
+    /// let range = ByteRange::try_new(BytePos::new(3), BytePos::new(7)).unwrap();
+    /// assert_eq!(range.len().to_usize(), 4);
+    ///
+    /// assert!(ByteRange::try_new(BytePos::new(7), BytePos::new(3)).is_err());
+    /// ```
     #[inline]
     pub fn try_new(start: BytePos, end: BytePos) -> io::Result<Self> {
         if start > end {

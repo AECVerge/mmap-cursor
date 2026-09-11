@@ -129,6 +129,16 @@ impl LineIndex {
     ///
     /// `column` is measured in bytes from the line start. Returns `None` for a
     /// position past EOF.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use filecursor::{BytePos, LineIndex};
+    ///
+    /// let index = LineIndex::new(b"one\ntwo\n");
+    /// assert_eq!(index.line_column(BytePos::new(5)), Some((2, 2))); // 1-based
+    /// assert_eq!(index.line_column(BytePos::new(99)), None);
+    /// ```
     pub fn line_column(&self, offset: BytePos) -> Option<(usize, usize)> {
         let line = self.line_for_offset(offset)?;
         let start = self.line_starts[line];

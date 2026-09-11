@@ -78,6 +78,17 @@ impl<'src> Cursor<'src> {
     /// Returns `None` if the cursor is already at EOF. Otherwise returns the
     /// bytes read — fewer than `n` when near EOF, empty when `n == 0`, in which
     /// case the cursor does not move — and advances the cursor past them.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use filecursor::Cursor;
+    ///
+    /// let mut cursor = Cursor::new(b"hello");
+    /// assert_eq!(cursor.slice_n_ahead(2), Some(&b"he"[..]));
+    /// assert_eq!(cursor.slice_n_ahead(99), Some(&b"llo"[..])); // short read at EOF
+    /// assert_eq!(cursor.slice_n_ahead(1), None); // already at EOF
+    /// ```
     pub fn slice_n_ahead(&mut self, n: usize) -> Option<&'src [u8]> {
         if self.is_eof() {
             return None;
@@ -107,6 +118,21 @@ impl<'src> Cursor<'src> {
     /// `advance*` methods. A caller that wants to know whether clamping happened
     /// can compare [`position`](Self::position) with the requested position
     /// afterwards.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use filecursor::{BytePos, Cursor};
+    ///
+    /// let mut cursor = Cursor::new(b"hello");
+    /// cursor.seek(BytePos::new(3));
+    /// assert_eq!(cursor.peek(), Some(b'l'));
+    ///
+    /// let wanted = BytePos::new(99);
+    /// cursor.seek(wanted); // clamps to EOF
+    /// assert!(cursor.is_eof());
+    /// assert_ne!(cursor.position(), wanted); // ...which is detectable
+    /// ```
     #[inline]
     pub fn seek(&mut self, pos: BytePos) {
         self.pos = pos.min(self.eof);
@@ -151,6 +177,16 @@ impl<'src> Cursor<'src> {
 
     /// Advance to the first `stop` byte, or to EOF if there is none, leaving the
     /// `stop` byte unconsumed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use filecursor::Cursor;
+    ///
+    /// let mut cursor = Cursor::new(b"abc;def");
+    /// cursor.advance_to(b';');
+    /// assert_eq!(cursor.peek(), Some(b';')); // still there to read
+    /// ```
     pub fn advance_to(&mut self, stop: u8) {
         self.advance_until(|b| b != stop);
     }
@@ -160,6 +196,16 @@ impl<'src> Cursor<'src> {
     /// Use this to consume a delimited value's terminator; use
     /// [`advance_to`](Self::advance_to) to stop in front of a delimiter you want
     /// to inspect first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use filecursor::Cursor;
+    ///
+    /// let mut cursor = Cursor::new(b"abc;def");
+    /// cursor.advance_through(b';');
+    /// assert_eq!(cursor.peek(), Some(b'd')); // the stop byte was consumed
+    /// ```
     pub fn advance_through(&mut self, stop: u8) {
         self.advance_to(stop);
         if self.peek() == Some(stop) {

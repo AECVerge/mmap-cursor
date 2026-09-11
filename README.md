@@ -12,27 +12,33 @@ slices by byte position, and convert any position into `(line, column)`.
 
 ## Why
 
-Parsers, lexers and linters tend to bring their own cursor over an in-memory
-buffer. That works while the input is small, because the whole file can be read
-into a `String` or a `Vec<u8>` first.
+Parsers, lexers and linters usually bring their own cursor over an in-memory
+buffer, which works while the input is small. The files this crate is aimed at
+are hundreds of megabytes, and occasionally gigabytes — reading one of those
+into memory means paying for a full copy before any work starts.
 
-The files this crate is aimed at are not small — hundreds of megabytes, and
-occasionally gigabytes. Reading one of those into memory means paying for a full
-copy before any work starts.
+`mmap-cursor` is the infrastructure for reading them by byte position:
 
-`mmap-cursor` maps the file once, read-only, and hands out positions into that
-mapping. A slice is a borrow of the mapping rather than a copy, and a single
-snapshot answers both "what bytes are at this position" and "which line and
-column does this position fall on". `Cursor` is deliberately a broad API for
-walking those bytes — seek, peek ahead, slice, and advance by one byte, by a
-count, to a delimiter, past a delimiter, or until a predicate says stop —
-because composing those calls is how you build the scanning loop your format
-needs.
-
-The crate is format-agnostic and parses nothing. It has no idea what a token, a
-comment or a record is: `/*` is format knowledge, and it stays in your code.
-What the crate supplies is the position, the slice, and the line/column lookup
-— the infrastructure a parser is built on.
+- **Map once, read-only.** `ByteFile::open` memory-maps the file; nothing is
+  copied, and a slice is a borrow of the mapping rather than a copy.
+- **Address bytes directly.** A position is a `usize` offset into the snapshot,
+  so it indexes the mapping as it is.
+- **Look a position up in either direction.** One `LineIndex`, built in a single
+  pass, answers both "what bytes does this line cover" and "which line and
+  column does this position fall on".
+- **Walk bytes with a broad `Cursor`.** Seek, peek ahead, slice, and advance by
+  one byte, by a count, to a delimiter, past a delimiter, or until a predicate
+  says stop — composing those calls is how you build the scanning loop your
+  format needs.
+- **Hold a stable snapshot.** Positions, slices and line/column values go on
+  describing the file as it was at open time, whatever happens to the path
+  afterwards.
+- **Keep positions after the bytes are gone.** A `BytePos` and a `LineIndex`
+  stay meaningful once the snapshot is dropped, so a parser can hand positions
+  to a diagnostics layer and let the file go.
+- **Stay format-agnostic.** The crate parses nothing, and has no idea what a
+  token, a comment or a record is: `/*` is format knowledge, and it stays in
+  your code.
 
 ## Quick start
 
@@ -79,6 +85,33 @@ cargo run --example comments
 cargo run --example diagnostic
 ```
 
+## API
+
+| Type | Purpose |
+| --- | --- |
+| `ByteFile` | A read-only mapping of one file: `bytes`, `cursor`, `line_index`, `len`, `is_empty`. |
+| `Cursor` | Moves over a snapshot: `seek`, `position`, `peek`, `peek_n_ahead`, `slice`, `slice_n_ahead`, `rest`, and the `advance*` methods. |
+| `LineIndex` | Position and line lookups: `line_column`, `line_for_offset`, `line_start`, `line_range`, `num_lines`. |
+| `BytePos` | A byte offset from the start of a snapshot. |
+| `ByteRange` | A half-open `[start, end)` pair of positions. |
+| `Error`, `Result` | The crate's error type and its result alias. |
+
+Only two operations can fail: `ByteFile::open` reports I/O errors and a file
+length the platform cannot address, and `ByteRange::try_new` reports reversed
+bounds. Everything else that can go wrong is an ordinary `None`. Full signatures
+and per-item documentation are on [docs.rs](https://docs.rs/mmap-cursor).
+
+## Feature flags
+
+| Feature | Default | Effect |
+| --- | --- | --- |
+| `simd` | on | Scans for newlines with `memchr`. Without it, a byte-scanning fallback produces an identical index. |
+| `serde` | off | Derives `Serialize` on `BytePos` and `ByteRange`. |
+
+`--no-default-features` builds a pure byte reader that pulls in no optional
+dependency. With `serde` enabled, a position serializes at the width of the
+platform's `usize`, as it is in memory.
+
 ## Safety / concurrency model
 
 `ByteFile::open` produces a **stable snapshot**: every position, slice and
@@ -118,45 +151,19 @@ by the platform's `usize`.
   included. The checked and saturating methods report the same conditions as
   values, for callers who would rather not panic.
 
-## API
-
-| Type | Purpose |
-| --- | --- |
-| `ByteFile` | A read-only mapping of one file: `bytes`, `cursor`, `line_index`, `len`, `is_empty`. |
-| `Cursor` | Moves over a snapshot: `seek`, `position`, `peek`, `peek_n_ahead`, `slice`, `slice_n_ahead`, `rest`, and the `advance*` methods. |
-| `LineIndex` | Position and line lookups: `line_column`, `line_for_offset`, `line_start`, `line_range`, `num_lines`. |
-| `BytePos` | A byte offset from the start of a snapshot. |
-| `ByteRange` | A half-open `[start, end)` pair of positions. |
-| `Error`, `Result` | The crate's error type and its result alias. |
-
-Only two operations can fail: `ByteFile::open` reports I/O errors and a file
-length the platform cannot address, and `ByteRange::try_new` reports reversed
-bounds. Everything else that can go wrong is an ordinary `None`. Full signatures
-and per-item documentation are on [docs.rs](https://docs.rs/mmap-cursor).
-
-## Feature flags
-
-| Feature | Default | Effect |
-| --- | --- | --- |
-| `simd` | on | Scans for newlines with `memchr`. Without it, a byte-scanning fallback produces an identical index. |
-| `serde` | off | Derives `Serialize` on `BytePos` and `ByteRange`. |
-
-`--no-default-features` builds a pure byte reader that pulls in no optional
-dependency. With `serde` enabled, a position serializes at the width of the
-platform's `usize`, as it is in memory.
-
 ## Minimum supported Rust version
 
 1.85, which `edition = "2024"` requires. CI has a job pinned to exactly that
 version, so the declared MSRV cannot drift from the one that is tested. Raising
-it is recorded in the [changelog](CHANGELOG.md).
+it is recorded in the
+[changelog](https://github.com/AECVerge/mmap-cursor/blob/main/CHANGELOG.md).
 
 ## License
 
 Licensed under either of
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
-- MIT license ([LICENSE-MIT](LICENSE-MIT))
+- Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/AECVerge/mmap-cursor/blob/main/LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](https://github.com/AECVerge/mmap-cursor/blob/main/LICENSE-MIT))
 
 at your option.
 

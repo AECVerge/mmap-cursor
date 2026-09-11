@@ -5,8 +5,8 @@ edition = "2024"
 rust-version = "1.85"
 description = "A zero-copy byte-position reader for parsers and lexers of large files"
 license = "MIT OR Apache-2.0"
-keywords = ["mmap", "reader", "byte"]
-categories = ["parser-implementations", "encoding"]
+keywords = ["mmap", "large-file", "byte-position", "parser", "cursor"]
+categories = ["filesystem", "memory-management", "parsing"]
 repository = "https://github.com/AECVerge/mmap-cursor"
 exclude = ["/.github", "/AGENTS.md"]
 

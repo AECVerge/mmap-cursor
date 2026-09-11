@@ -175,7 +175,7 @@ impl ByteRange {
     /// use mmap_cursor::{BytePos, ByteRange, Error};
     ///
     /// let range = ByteRange::try_new(BytePos::new(3), BytePos::new(7)).unwrap();
-    /// assert_eq!(range.len().to_usize(), 4);
+    /// assert_eq!(range.len(), 4);
     ///
     /// let err = ByteRange::try_new(BytePos::new(7), BytePos::new(3)).unwrap_err();
     /// assert!(matches!(err, Error::ReversedRange { .. }));

@@ -1,10 +1,12 @@
 //! Precomputed line-start byte offsets for `pos -> (line, column)` mapping and
 //! for `line -> bytes` lookup.
 //!
-//! The index is built in a single pass over a snapshot's bytes, and lookups are
-//! a binary search. No tokenisation happens; this is format-agnostic.
+//! The index is built in a single pass over a snapshot's bytes and then keeps
+//! nothing of them, which means a consumer that reads the bytes once can
+//! resolve `(line, column)` by the [`BytePos`] offsets it saw — in an AST, in
+//! a diagnostic, in a work queue — whether the `&[u8]` borrow is dropped.
 //!
-//! With the `simd` feature (default), the newline scan uses `memchr` for a
+//! With the `simd` feature (default on), the newline scan uses `memchr` for a
 //! SIMD-accelerated pass; without it, an equivalent byte-scanning fallback is
 //! used. The resulting index and the public API are identical either way.
 
@@ -88,7 +90,7 @@ impl LineIndex {
 
     /// Byte position where `line` starts, or `None` if `line` is out of range.
     ///
-    /// `line` is 0-based, matching [`line_for_offset`](Self::line_for_offset);
+    /// `line` is **0-based**, matching [`line_for_offset`](Self::line_for_offset);
     /// valid values are `0..num_lines()`.
     pub fn line_start(&self, line: usize) -> Option<BytePos> {
         self.line_starts.get(line).copied().map(BytePos::new)
@@ -108,7 +110,7 @@ impl LineIndex {
         Some(ByteRange::new(start, end))
     }
 
-    /// 0-based line index containing `offset`, or `None` if `offset` is past
+    /// **0-based** line index containing `offset`, or `None` if `offset` is past
     /// EOF.
     pub fn line_for_offset(&self, offset: BytePos) -> Option<usize> {
         let offset = offset.to_usize();
@@ -122,7 +124,7 @@ impl LineIndex {
         Some(line)
     }
 
-    /// Convert a byte position into a 1-based `(line, column)`.
+    /// Convert a byte position into a **1-based** `(line, column)`.
     ///
     /// `column` is measured in bytes from the line start. Returns `None` for a
     /// position past EOF.

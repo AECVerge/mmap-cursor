@@ -1,8 +1,8 @@
 # AGENTS.md
 
 Guidance for coding agents working on this crate. It is a small, format-agnostic,
-zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
-(ISO 10303-21) "load then read" scenario. Keep it *minimal*.
+zero-copy **byte-position reader** for large files, motivated by the "load a large
+file once, then read byte positions from it" scenario. Keep it *minimal*.
 
 ## What this crate is
 
@@ -32,8 +32,8 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
   map-backed reads never observe a partial file and never SIGBUS.
 - `unsafe` is confined to the single mmap call and must carry a SAFETY comment
   restating the guarantee above. Do not add `unsafe` elsewhere.
-- Reads never panic: out-of-range or overflowing positions return `io::Error`
-  (or `None` where documented). Keep all reads bounds-checked.
+- Reads never panic: an out-of-range or overflowing position is reported as
+  `None`, never as a panic or a substituted value. Keep all reads bounds-checked.
 - Arithmetic on positions is the caller's own computation: the `BytePos`
   operators panic on overflow in **every** profile (implemented over
   `checked_add`/`checked_sub`, not `usize`'s debug-only check) and document that.
@@ -47,6 +47,9 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
   snapshot can address is therefore bounded by the platform's `usize`. The
   serialized width of a position (via the `serde` feature) is likewise
   platform-dependent.
+- `BytePos` for offset, absolute/ relative position; `ByteRange` for a range 
+  marked by 2 `BytePos`es; `usize` for raw index, length of `ByteRange`, `&[u8]`,
+  user given values(steps to advance), etc.
 - All positions are relative to the opened snapshot; they become invalid once
   the file is replaced, so re-open to re-read.
 - Line/column are 1-based. The index splits on `\n`, `\r\n`, or a lone `\r` as
@@ -71,6 +74,7 @@ zero-copy **byte-position reader** for large files, motivated by the IFC/STEP
 
 - `cargo build`
 - `cargo test`
+- `cargo test --doc` (doctests — note that `--all-targets` does **not** run them)
 - `cargo test --all-targets --no-default-features`
 - `cargo test --release --all-targets` (overflow checks are off in release by
   default, so this catches profile-dependent panic/overflow behaviour)

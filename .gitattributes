@@ -21,6 +21,10 @@ Cargo.lock text eol=lf
 # Example fixtures — always LF, so the examples report identical byte offsets
 # and line/column numbers on every platform.
 examples/fixtures/* text eol=lf
+# License texts must stay byte-exact. `-text` disables end-of-line conversion
+# entirely, so it is never rewritten to CRLF on Windows.
+LICENSE-APACHE -text
+LICENSE-MIT -text
 # Git files
 .gitattributes text eol=lf
 .gitignore text eol=lf

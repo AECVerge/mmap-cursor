@@ -10,11 +10,12 @@
 //!
 //! Arithmetic on positions is plain integer arithmetic: [`BytePos`] implements
 //! `Add`/`Sub` and both panic on overflow instead of wrapping (see the operators'
-//! `# Panics` sections). Reading through a snapshot never panics — out-of-range
-//! and overflowing positions are reported as errors instead.
+//! `# Panics` sections). The checked and saturating methods are the value-
+//! reporting counterparts of the operators.
 
 use std::fmt;
-use std::io;
+
+use crate::{Error, Result};
 
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -52,13 +53,45 @@ impl BytePos {
         }
     }
 
-    /// Saturating addition, for "advance by `rhs`, clamped at the top of the
-    /// address space" arithmetic. Internal: callers clamp to the snapshot's end
-    /// on top of this, so no position arithmetic inside the crate can panic.
+    /// Checked addition: `None` if the sum would overflow this platform's
+    /// `usize`, where [`+`](std::ops::Add) panics.
+    #[inline]
+    #[must_use]
+    pub const fn checked_add(self, rhs: BytePos) -> Option<BytePos> {
+        match self.0.checked_add(rhs.0) {
+            Some(sum) => Some(BytePos(sum)),
+            None => None,
+        }
+    }
+
+    /// Checked subtraction: `None` if `rhs` is greater than `self`, where
+    /// [`-`](std::ops::Sub) panics.
+    #[inline]
+    #[must_use]
+    pub const fn checked_sub(self, rhs: BytePos) -> Option<BytePos> {
+        match self.0.checked_sub(rhs.0) {
+            Some(difference) => Some(BytePos(difference)),
+            None => None,
+        }
+    }
+
+    /// Saturating addition: clamps at the top of the address space instead of
+    /// panicking.
+    ///
+    /// Use this for "advance by `rhs`, clamped at the top" arithmetic, and
+    /// [`checked_add`](Self::checked_add) when the clamp must be detectable.
     #[inline]
     #[must_use]
     pub const fn saturating_add(self, rhs: BytePos) -> BytePos {
         BytePos(self.0.saturating_add(rhs.0))
+    }
+
+    /// Saturating subtraction: clamps at [`ZERO`](Self::ZERO) instead of
+    /// panicking.
+    #[inline]
+    #[must_use]
+    pub const fn saturating_sub(self, rhs: BytePos) -> BytePos {
+        BytePos(self.0.saturating_sub(rhs.0))
     }
 }
 
@@ -180,10 +213,14 @@ impl ByteRange {
     ///
     /// Returned as a [`BytePos`] so that a length and an offset share one type;
     /// use [`BytePos::to_usize`] for the raw number.
+    ///
+    /// This is total: the `start <= end` invariant is upheld by every
+    /// constructor, and the subtraction saturates rather than panicking, so this
+    /// cannot fail however the range was built.
     #[inline]
     #[must_use]
     pub fn len(&self) -> BytePos {
-        self.end - self.start
+        self.end.saturating_sub(self.start)
     }
 
     /// If this is an empty range.
@@ -295,6 +332,71 @@ mod tests {
     }
 
     #[test]
+    fn byte_pos_checked_arithmetic_reports_overflow_as_none() {
+        assert_eq!(
+            BytePos::new(5).checked_add(BytePos::new(7)),
+            Some(BytePos::new(12))
+        );
+        assert_eq!(BytePos::new(usize::MAX).checked_add(BytePos::new(1)), None);
+        assert_eq!(
+            BytePos::new(usize::MAX).checked_add(BytePos::ZERO),
+            Some(BytePos::new(usize::MAX))
+        );
+        assert_eq!(BytePos::new(5).checked_sub(BytePos::new(7)), None);
+        assert_eq!(
+            BytePos::new(5).checked_sub(BytePos::new(5)),
+            Some(BytePos::ZERO)
+        );
+        assert_eq!(
+            BytePos::ZERO.checked_sub(BytePos::ZERO),
+            Some(BytePos::ZERO)
+        );
+    }
+
+    #[test]
+    fn byte_pos_checked_arithmetic_agrees_with_the_panicking_operators() {
+        let cases: [(usize, usize); 8] = [
+            (0, 0),
+            (0, 1),
+            (1, 0),
+            (7, 9),
+            (9, 7),
+            (usize::MAX, 0),
+            (usize::MAX - 1, 1),
+            (1, usize::MAX - 1),
+        ];
+        for (a, b) in cases {
+            let (a, b) = (BytePos::new(a), BytePos::new(b));
+            if let Some(sum) = a.checked_add(b) {
+                assert_eq!(sum, a + b, "checked_add disagrees for {a} + {b}");
+            }
+            if let Some(difference) = a.checked_sub(b) {
+                assert_eq!(difference, a - b, "checked_sub disagrees for {a} - {b}");
+            }
+        }
+    }
+
+    #[test]
+    fn byte_pos_saturating_sub_clamps_at_zero() {
+        assert_eq!(
+            BytePos::new(9).saturating_sub(BytePos::new(3)),
+            BytePos::new(6)
+        );
+        assert_eq!(
+            BytePos::new(3).saturating_sub(BytePos::new(3)),
+            BytePos::ZERO
+        );
+        assert_eq!(
+            BytePos::new(3).saturating_sub(BytePos::new(9)),
+            BytePos::ZERO
+        );
+        assert_eq!(
+            BytePos::ZERO.saturating_sub(BytePos::new(usize::MAX)),
+            BytePos::ZERO
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "BytePos addition overflowed")]
     fn byte_pos_addition_overflows() {
         let _ = BytePos::new(usize::MAX) + BytePos::new(1);
@@ -357,8 +459,34 @@ mod tests {
     #[test]
     fn byte_range_try_new_rejects_reversed_bounds() {
         let err = ByteRange::try_new(BytePos::new(10), BytePos::new(5)).unwrap_err();
-        assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
-        assert_eq!(err.to_string(), "ByteRange: start > end");
+        assert_eq!(err.to_string(), "byte range start 10 is greater than end 5");
+        match err {
+            Error::ReversedRange { start, end } => {
+                assert_eq!(start, BytePos::new(10));
+                assert_eq!(end, BytePos::new(5));
+            }
+            other => panic!("expected ReversedRange, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn byte_range_try_new_accepts_the_bounds_that_new_accepts() {
+        // The two constructors must agree on every case that does not panic.
+        let cases = [
+            (0usize, 0usize),
+            (0, 1),
+            (7, 7),
+            (3, 9),
+            (usize::MAX, usize::MAX),
+        ];
+        for (start, end) in cases {
+            let checked = ByteRange::try_new(BytePos::new(start), BytePos::new(end));
+            assert_eq!(
+                checked.ok(),
+                Some(ByteRange::new(BytePos::new(start), BytePos::new(end))),
+                "{start}..{end}"
+            );
+        }
     }
 
     #[test]
@@ -377,6 +505,14 @@ mod tests {
         // The cross-constructor invariant: `EMPTY` is exactly `ZERO.as_range()`,
         // so every route to an empty range agrees.
         assert_eq!(r, BytePos::ZERO.as_range());
+    }
+
+    #[test]
+    fn byte_range_default_is_the_empty_zero_range() {
+        assert_eq!(ByteRange::default(), ByteRange::EMPTY);
+        assert_eq!(ByteRange::default(), BytePos::ZERO.as_range());
+        assert!(ByteRange::default().is_empty());
+        assert_eq!(ByteRange::default().len(), BytePos::ZERO);
     }
 
     #[test]

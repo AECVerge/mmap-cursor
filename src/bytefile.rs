@@ -59,6 +59,7 @@ impl ByteFile {
     /// # Ok::<(), std::io::Error>(())
     /// ```
     pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
+    #[allow(unsafe_code)]
         let file = File::open(&path)?;
         let metadata = file.metadata()?;
         let len = usize::try_from(metadata.len()).map_err(|_| {
@@ -83,11 +84,13 @@ impl ByteFile {
     }
 
     /// Total length of the snapshot in bytes.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.bytes().len()
     }
 
     /// Whether the snapshot is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -96,17 +99,20 @@ impl ByteFile {
     ///
     /// Positions into this slice are the crate's byte positions. Use this to
     /// build a [`Cursor`] or [`LineIndex`] over the snapshot.
+    #[must_use]
     pub fn bytes(&self) -> &[u8] {
         self.mmap.as_deref().unwrap_or(&[])
     }
 
     /// Create a [`Cursor`] over the whole snapshot, positioned at its start.
+    #[must_use]
     pub fn cursor(&self) -> Cursor<'_> {
         Cursor::new(self.bytes())
     }
 
     /// Build a [`LineIndex`] over the whole snapshot for `pos -> (line, column)`
     /// conversion.
+    #[must_use]
     pub fn line_index(&self) -> LineIndex {
         LineIndex::new(self.bytes())
     }

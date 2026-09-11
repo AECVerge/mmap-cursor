@@ -32,6 +32,7 @@ impl LineIndex {
     /// no terminator at all (the empty file included) has exactly one line. A
     /// `\r` inside a `\r\n` pair is counted as a column of the line it
     /// terminates.
+    #[must_use]
     pub fn new(bytes: &[u8]) -> Self {
         let mut line_starts = Vec::new();
         line_starts.push(0usize);
@@ -80,6 +81,7 @@ impl LineIndex {
     /// A file with no terminator (the empty file included) has exactly one line;
     /// a file ending in a terminator has a final (possibly empty) line after it,
     /// so `num_lines` counts that one too.
+    #[must_use]
     pub fn num_lines(&self) -> usize {
         self.line_starts.len()
     }

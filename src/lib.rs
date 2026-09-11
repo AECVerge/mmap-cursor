@@ -1,3 +1,4 @@
+#![deny(unsafe_code)]
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]

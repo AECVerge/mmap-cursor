@@ -11,6 +11,7 @@ use crate::{BytePos, ByteRange};
 ///
 /// `ByteFile::cursor` creates one over a file snapshot; [`Cursor::new`] takes any
 /// `&[u8]`.
+#[derive(Clone, Copy)]
 pub struct Cursor<'src> {
     source: &'src [u8],
     pos: BytePos,
@@ -19,6 +20,7 @@ pub struct Cursor<'src> {
 
 impl<'src> Cursor<'src> {
     /// Create a cursor from source bytes.
+    #[must_use]
     pub fn new(source: &'src [u8]) -> Self {
         Self {
             source,
@@ -29,18 +31,21 @@ impl<'src> Cursor<'src> {
 
     /// Current cursor position in bytes.
     #[inline]
+    #[must_use]
     pub fn position(&self) -> BytePos {
         self.pos
     }
 
     /// True if we've consumed all bytes.
     #[inline]
+    #[must_use]
     pub fn is_eof(&self) -> bool {
         self.pos >= self.eof
     }
 
     /// Number of bytes between the cursor and EOF.
     #[inline]
+    #[must_use]
     pub fn remaining_len(&self) -> usize {
         self.eof.to_usize().saturating_sub(self.pos.to_usize())
     }

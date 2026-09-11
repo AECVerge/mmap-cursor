@@ -30,18 +30,21 @@ impl BytePos {
 
     /// Construct a [`BytePos`] from a `usize` offset.
     #[inline]
+    #[must_use]
     pub const fn new(n: usize) -> Self {
         BytePos(n)
     }
 
     /// Return the raw `usize` offset.
     #[inline]
+    #[must_use]
     pub const fn to_usize(self) -> usize {
         self.0
     }
 
     /// Collapse this position into an empty [`ByteRange`] at the same offset.
     #[inline]
+    #[must_use]
     pub fn as_range(self) -> ByteRange {
         ByteRange {
             start: self,
@@ -53,7 +56,8 @@ impl BytePos {
     /// address space" arithmetic. Internal: callers clamp to the snapshot's end
     /// on top of this, so no position arithmetic inside the crate can panic.
     #[inline]
-    pub(crate) const fn saturating_add(self, rhs: BytePos) -> BytePos {
+    #[must_use]
+    pub const fn saturating_add(self, rhs: BytePos) -> BytePos {
         BytePos(self.0.saturating_add(rhs.0))
     }
 }
@@ -106,7 +110,7 @@ impl std::ops::Sub<BytePos> for BytePos {
 
 /// A half-open byte range: `[start, end)`.
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct ByteRange {
     start: BytePos,
     end: BytePos,
@@ -126,6 +130,7 @@ impl ByteRange {
     /// `start`/`end` may be untrusted and you want to handle the error rather
     /// than panic.
     #[inline]
+    #[must_use]
     pub fn new(start: BytePos, end: BytePos) -> Self {
         assert!(start <= end, "ByteRange: start > end");
         Self { start, end }
@@ -162,12 +167,14 @@ impl ByteRange {
 
     /// Start of the range in bytes.
     #[inline]
+    #[must_use]
     pub fn start(&self) -> BytePos {
         self.start
     }
 
     /// End of the range in bytes.
     #[inline]
+    #[must_use]
     pub fn end(&self) -> BytePos {
         self.end
     }
@@ -177,12 +184,14 @@ impl ByteRange {
     /// Returned as a [`BytePos`] so that a length and an offset share one type;
     /// use [`BytePos::to_usize`] for the raw number.
     #[inline]
+    #[must_use]
     pub fn len(&self) -> BytePos {
         self.end - self.start
     }
 
     /// If this is an empty range.
     #[inline]
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.start == self.end
     }

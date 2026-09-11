@@ -82,6 +82,18 @@ file once, then read byte positions from it" scenario. Keep it *minimal*.
 - `cargo fmt --all -- --check`
 - `cargo doc --no-deps --all-features`
 
+## MSRV
+
+- `rust-version` in `Cargo.toml` is the oldest toolchain this crate promises to
+  build on, and it is **tested, not assumed**: CI's `msrv` job is pinned to
+  exactly that version. The lower bound is currently set by `edition = "2024"`,
+  which requires 1.85.
+- It is a public contract. Raising it means bumping `Cargo.toml` and the `msrv`
+  job together, and recording the change in `CHANGELOG.md`.
+- `edition = "2024"` implies `resolver = "3"` (MSRV-aware), so this value also
+  steers dependency selection: keep it at the true floor, not at an aspirational
+  version that nothing ever compiles against.
+
 ## Testing layout
 
 - `ByteFile` is the crate's filesystem entry point, and its contract lives in

@@ -3,7 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/mmap-cursor.svg)](https://crates.io/crates/mmap-cursor)
 [![docs.rs](https://docs.rs/mmap-cursor/badge.svg)](https://docs.rs/mmap-cursor)
 [![CI](https://github.com/AECVerge/mmap-cursor/actions/workflows/ci.yml/badge.svg)](https://github.com/AECVerge/mmap-cursor/actions/workflows/ci.yml)
-[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue.svg)](#minimum-supported-rust-version)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://crates.io/crates/mmap-cursor)
 [![license](https://img.shields.io/crates/l/mmap-cursor.svg)](#license)
 
 A zero-copy byte-position reader for parsers and lexers of large files. Open a
@@ -21,24 +21,19 @@ into memory means paying for a full copy before any work starts.
 
 - **Map once, read-only.** `ByteFile::open` memory-maps the file; nothing is
   copied, and a slice is a borrow of the mapping rather than a copy.
-- **Address bytes directly.** A position is a `usize` offset into the snapshot,
-  so it indexes the mapping as it is.
 - **Look a position up in either direction.** One `LineIndex`, built in a single
   pass, answers both "what bytes does this line cover" and "which line and
   column does this position fall on".
 - **Walk bytes with a broad `Cursor`.** Seek, peek ahead, slice, and advance by
   one byte, by a count, to a delimiter, past a delimiter, or until a predicate
   says stop — composing those calls is how you build the scanning loop your
-  format needs.
-- **Hold a stable snapshot.** Positions, slices and line/column values go on
-  describing the file as it was at open time, whatever happens to the path
-  afterwards.
+  lexer or parser needs.
 - **Keep positions after the bytes are gone.** A `BytePos` and a `LineIndex`
   stay meaningful once the snapshot is dropped, so a parser can hand positions
   to a diagnostics layer and let the file go.
 - **Stay format-agnostic.** The crate parses nothing, and has no idea what a
-  token, a comment or a record is: `/*` is format knowledge, and it stays in
-  your code.
+  token, a comment or a record is: `/*` or `#` is format knowledge, and it stays
+  in your code.
 
 ## Quick start
 
@@ -150,13 +145,6 @@ by the platform's `usize`.
 - `BytePos`'s `+` and `-` panic on overflow in **every** profile, release
   included. The checked and saturating methods report the same conditions as
   values, for callers who would rather not panic.
-
-## Minimum supported Rust version
-
-1.85, which `edition = "2024"` requires. CI has a job pinned to exactly that
-version, so the declared MSRV cannot drift from the one that is tested. Raising
-it is recorded in the
-[changelog](https://github.com/AECVerge/mmap-cursor/blob/main/CHANGELOG.md).
 
 ## License
 

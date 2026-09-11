@@ -33,12 +33,7 @@ impl LineIndex {
     /// `\r` inside a `\r\n` pair is counted as a column of the line it
     /// terminates.
     pub fn new(bytes: &[u8]) -> Self {
-        // TODO(pre-release): `/ 88` assumes STEP/IFC-ish line widths and this
-        // crate must stay format-agnostic. Decide before the first release
-        // whether to keep the heuristic (documented and capped) or to drop the
-        // reservation and let the `Vec` grow amortised. A file with very few,
-        // very long lines currently reserves ~9% of its size here.
-        let mut line_starts = Vec::with_capacity(bytes.len() / 88 + 1);
+        let mut line_starts = Vec::new();
         line_starts.push(0usize);
 
         #[cfg(feature = "simd")]

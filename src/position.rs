@@ -140,9 +140,8 @@ impl ByteRange {
     ///
     /// # Errors
     ///
-    /// Returns an [`io::Error`] of kind
-    /// [`InvalidInput`](io::ErrorKind::InvalidInput) if `start` is greater than
-    /// `end`, instead of panicking.
+    /// Returns [`Error::ReversedRange`] if `start` is greater than `end`, instead
+    /// of panicking.
     ///
     /// # Examples
     ///
@@ -152,15 +151,13 @@ impl ByteRange {
     /// let range = ByteRange::try_new(BytePos::new(3), BytePos::new(7)).unwrap();
     /// assert_eq!(range.len().to_usize(), 4);
     ///
-    /// assert!(ByteRange::try_new(BytePos::new(7), BytePos::new(3)).is_err());
+    /// let err = ByteRange::try_new(BytePos::new(7), BytePos::new(3)).unwrap_err();
+    /// assert!(matches!(err, Error::ReversedRange { .. }));
     /// ```
     #[inline]
-    pub fn try_new(start: BytePos, end: BytePos) -> io::Result<Self> {
+    pub fn try_new(start: BytePos, end: BytePos) -> Result<Self> {
         if start > end {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "ByteRange: start > end",
-            ));
+            return Err(Error::ReversedRange { start, end });
         }
         Ok(Self { start, end })
     }

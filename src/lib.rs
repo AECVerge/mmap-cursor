@@ -5,11 +5,14 @@
 
 mod bytefile;
 mod cursor;
+mod error;
 mod line_index;
 mod position;
 
 pub use crate::bytefile::ByteFile;
 pub use crate::cursor::Cursor;
+pub use crate::error::Error;
+pub use crate::error::Result;
 pub use crate::line_index::LineIndex;
 pub use crate::position::BytePos;
 pub use crate::position::ByteRange;

@@ -1,10 +1,9 @@
 use std::fs::File;
-use std::io;
 use std::path::Path;
 
 use memmap2::{Mmap, MmapOptions};
 
-use crate::{Cursor, LineIndex};
+use crate::{Cursor, Error, LineIndex, Result};
 
 /// A zero-copy, read-only snapshot of a file's bytes.
 ///
@@ -39,10 +38,10 @@ impl ByteFile {
     ///
     /// # Errors
     ///
-    /// Returns the I/O error from opening the file or reading its metadata, an
-    /// [`InvalidInput`](io::ErrorKind::InvalidInput) error when the file is too
-    /// large to address on this platform, or whatever the memory-mapping call
-    /// reports.
+    /// Returns [`Error::Io`] if the file cannot be opened, if its metadata cannot
+    /// be read, or if the memory-mapping call itself fails, and
+    /// [`Error::FileTooLarge`] if the file's length does not fit this platform's
+    /// `usize`. An empty file is not an error: it maps to a zero-length snapshot.
     ///
     /// # Examples
     ///
@@ -56,18 +55,14 @@ impl ByteFile {
     /// let head = cursor.slice_n_ahead(64).unwrap_or(&[]);
     /// assert!(head.len() <= 64);
     /// assert!(index.num_lines() >= 1);
-    /// # Ok::<(), std::io::Error>(())
+    /// # Ok::<(), mmap_cursor::Error>(())
     /// ```
-    pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
     #[allow(unsafe_code)]
+    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let file = File::open(&path)?;
         let metadata = file.metadata()?;
-        let len = usize::try_from(metadata.len()).map_err(|_| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "file is too large to memory-map on this platform",
-            )
-        })?;
+        let file_len = metadata.len();
+        let len = usize::try_from(file_len).map_err(|_| Error::FileTooLarge { len: file_len })?;
 
         let mmap = if len == 0 {
             None

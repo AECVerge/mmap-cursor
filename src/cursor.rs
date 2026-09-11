@@ -99,9 +99,7 @@ impl<'src> Cursor<'src> {
             return None;
         }
         let end = self.pos.saturating_add(BytePos::new(n)).min(self.eof);
-        let slice = self
-            .slice(ByteRange::new(self.pos, end))
-            .expect("byte range is within the snapshot");
+        let slice = self.slice(ByteRange::new(self.pos, end))?;
         self.pos = end;
         Some(slice)
     }

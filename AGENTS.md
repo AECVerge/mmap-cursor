@@ -82,6 +82,28 @@ file once, then read byte positions from it" scenario. Keep it *minimal*.
 - `cargo fmt --all -- --check`
 - `cargo doc --no-deps --all-features`
 
+## Testing layout
+
+- `ByteFile` is the crate's filesystem entry point, and its contract lives in
+  `tests/`: opening real files, mmap behaviour, OS errors and the
+  snapshot/replacement semantics cannot be unit-tested. **Do not add a
+  `#[cfg(test)]` module to `src/bytefile.rs`.** It is covered by
+  `tests/bytefile_open.rs` (`open` success and failure paths),
+  `tests/snapshot.rs` (stable snapshot, atomic `rename`, removal) and
+  `tests/end_to_end.rs` (`ByteFile` × `Cursor` × `LineIndex`).
+- Keep the pure logic unit-testable and unit-tested in-module: `Cursor`,
+  `LineIndex`, `BytePos`/`ByteRange` and `Error`.
+- `tests/support/` holds the shared helper (temporary directories, atomic
+  replacement). It is hand-rolled on purpose — no dev-dependency is added for it.
+- **Never check in a fixture whose exact bytes matter.** `.gitattributes` sets
+  `* text=auto`, so a committed `\r\n` or lone-`\r` fixture is rewritten on
+  commit and the test would silently assert the wrong bytes. Build byte-exact
+  input at runtime with byte literals (`b"a\r\nb"`, `b"\xC3\xA9"`) and write it
+  into a temporary directory.
+- `Error::FileTooLarge` is unreachable through `open` on a 64-bit target; its
+  formatting and conversions are covered by the `src/error.rs` unit tests. Do not
+  fake an integration test for it, and do not claim that `open` is fully covered.
+
 ## When changing the crate
 
 - Keep the public API minimal and additive; do not remove or rename public
@@ -89,4 +111,5 @@ file once, then read byte positions from it" scenario. Keep it *minimal*.
 - Any change to the safety contract or the atomic-rename assumption must update
   the crate-level docs **and** this file.
 - Keep tests covering: the empty file, out-of-range and overflowing positions,
-  and `\n`/`\r\n`/lone-`\r` line handling.
+  and `\n`/`\r\n`/lone-`\r` line handling. See *Testing layout* for where each
+  kind of test belongs.

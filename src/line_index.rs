@@ -128,7 +128,7 @@ impl LineIndex {
     /// # Examples
     ///
     /// ```
-    /// use filecursor::{BytePos, LineIndex};
+    /// use mmap_cursor::{BytePos, LineIndex};
     ///
     /// let index = LineIndex::new(b"one\ntwo\n");
     /// assert_eq!(index.line_column(BytePos::new(5)), Some((2, 2))); // 1-based

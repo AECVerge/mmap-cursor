@@ -82,7 +82,7 @@ impl<'src> Cursor<'src> {
     /// # Examples
     ///
     /// ```
-    /// use filecursor::Cursor;
+    /// use mmap_cursor::Cursor;
     ///
     /// let mut cursor = Cursor::new(b"hello");
     /// assert_eq!(cursor.slice_n_ahead(2), Some(&b"he"[..]));
@@ -122,7 +122,7 @@ impl<'src> Cursor<'src> {
     /// # Examples
     ///
     /// ```
-    /// use filecursor::{BytePos, Cursor};
+    /// use mmap_cursor::{BytePos, Cursor};
     ///
     /// let mut cursor = Cursor::new(b"hello");
     /// cursor.seek(BytePos::new(3));
@@ -181,7 +181,7 @@ impl<'src> Cursor<'src> {
     /// # Examples
     ///
     /// ```
-    /// use filecursor::Cursor;
+    /// use mmap_cursor::Cursor;
     ///
     /// let mut cursor = Cursor::new(b"abc;def");
     /// cursor.advance_to(b';');
@@ -200,7 +200,7 @@ impl<'src> Cursor<'src> {
     /// # Examples
     ///
     /// ```
-    /// use filecursor::Cursor;
+    /// use mmap_cursor::Cursor;
     ///
     /// let mut cursor = Cursor::new(b"abc;def");
     /// cursor.advance_through(b';');

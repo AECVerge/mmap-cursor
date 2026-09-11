@@ -142,7 +142,7 @@ impl ByteRange {
     /// # Examples
     ///
     /// ```
-    /// use filecursor::{BytePos, ByteRange};
+    /// use mmap_cursor::{BytePos, ByteRange, Error};
     ///
     /// let range = ByteRange::try_new(BytePos::new(3), BytePos::new(7)).unwrap();
     /// assert_eq!(range.len().to_usize(), 4);

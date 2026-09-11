@@ -47,7 +47,7 @@ impl ByteFile {
     /// # Examples
     ///
     /// ```no_run
-    /// use filecursor::ByteFile;
+    /// use mmap_cursor::ByteFile;
     ///
     /// let file = ByteFile::open("data.bin")?;
     /// let index = file.line_index();

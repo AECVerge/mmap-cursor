@@ -68,7 +68,8 @@ impl TempDir {
             NEXT_ID.fetch_add(1, Ordering::Relaxed)
         ));
         fs::write(&staged, bytes).expect("write the staged replacement");
-        fs::rename(&staged, target).expect("rename the staged file over the target");
+        fs::rename(&staged, target)
+            .expect("rename the staged file over the target");
     }
 }
 

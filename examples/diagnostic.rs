@@ -65,7 +65,9 @@ fn main() -> Result<(), Error> {
         println!("{number:>width$} | {text}", number = line + 1);
     }
     println!("{gutter} |");
-    println!("note: rendered after `drop(file)`; only the position and the index survived");
+    println!(
+        "note: rendered after `drop(file)`; only the position and the index survived"
+    );
 
     Ok(())
 }
@@ -101,7 +103,11 @@ fn find(file: &ByteFile, index: &LineIndex) -> Option<Finding> {
 
 /// A neighbouring line's text, without its terminator, or `None` when there is
 /// no such line (the first and last line have only one neighbour).
-fn line_text(cursor: &Cursor<'_>, index: &LineIndex, line: Option<usize>) -> Option<String> {
+fn line_text(
+    cursor: &Cursor<'_>,
+    index: &LineIndex,
+    line: Option<usize>,
+) -> Option<String> {
     let range = index.line_range(line?)?;
     let text = cursor.slice(range)?.trim_ascii_end();
     Some(String::from_utf8_lossy(text).into_owned())

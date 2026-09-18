@@ -357,7 +357,11 @@ mod tests {
                 assert_eq!(sum, a + b, "checked_add disagrees for {a} + {b}");
             }
             if let Some(difference) = a.checked_sub(b) {
-                assert_eq!(difference, a - b, "checked_sub disagrees for {a} - {b}");
+                assert_eq!(
+                    difference,
+                    a - b,
+                    "checked_sub disagrees for {a} - {b}"
+                );
             }
         }
     }
@@ -444,8 +448,12 @@ mod tests {
 
     #[test]
     fn byte_range_try_new_rejects_reversed_bounds() {
-        let err = ByteRange::try_new(BytePos::new(10), BytePos::new(5)).unwrap_err();
-        assert_eq!(err.to_string(), "byte range start 10 is greater than end 5");
+        let err =
+            ByteRange::try_new(BytePos::new(10), BytePos::new(5)).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "byte range start 10 is greater than end 5"
+        );
         match err {
             Error::ReversedRange { start, end } => {
                 assert_eq!(start, BytePos::new(10));
@@ -466,7 +474,8 @@ mod tests {
             (usize::MAX, usize::MAX),
         ];
         for (start, end) in cases {
-            let checked = ByteRange::try_new(BytePos::new(start), BytePos::new(end));
+            let checked =
+                ByteRange::try_new(BytePos::new(start), BytePos::new(end));
             assert_eq!(
                 checked.ok(),
                 Some(ByteRange::new(BytePos::new(start), BytePos::new(end))),

@@ -36,6 +36,22 @@ impl<'src> Cursor<'src> {
         self.pos
     }
 
+    /// The position one past the last byte of the snapshot.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use mmap_cursor::{BytePos, Cursor};
+    ///
+    /// let mut cursor = Cursor::new(b"hello");
+    /// assert_eq!(cursor.eof(), BytePos::new(5)); // the snapshot length
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn eof(&self) -> BytePos {
+        self.eof
+    }
+
     /// True if we've consumed all bytes.
     #[inline]
     #[must_use]
@@ -248,6 +264,40 @@ mod tests {
         let c = cursor(b"abc");
         assert_eq!(c.peek(), Some(b'a'));
         assert_eq!(c.position().to_usize(), 0); // peek does not advance
+    }
+
+    #[test]
+    fn cursor_eof_empty_source() {
+        assert_eq!(cursor(b"").eof(), BytePos::ZERO);
+    }
+
+    #[test]
+    fn cursor_eof_is_the_snapshot_length() {
+        let c = cursor(b"abc");
+        assert_eq!(c.eof(), BytePos::new(3));
+        assert_eq!(c.eof().to_usize(), b"abc".len());
+    }
+
+    #[test]
+    fn cursor_eof_is_constant_across_movement() {
+        let mut c = cursor(b"abcdef");
+        let eof = c.eof();
+        c.advance();
+        assert_eq!(c.eof(), eof);
+        c.advance_n_ahead(3);
+        assert_eq!(c.eof(), eof);
+        c.seek(BytePos::new(1)); // rewind
+        assert_eq!(c.eof(), eof);
+        c.seek(BytePos::new(usize::MAX));
+        assert_eq!(c.eof(), eof);
+    }
+
+    #[test]
+    fn cursor_seek_usize_max_clamps_to_eof() {
+        let mut c = cursor(b"abc");
+        c.seek(BytePos::new(usize::MAX));
+        assert_eq!(c.position(), c.eof());
+        assert!(c.is_eof());
     }
 
     #[test]

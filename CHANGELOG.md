@@ -5,7 +5,16 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.1] - 2026-09-18
+
+### Added
+
+- **`Cursor::eof`** — the position one past the last byte of the snapshot, as a
+  `BytePos`. It is the cursor's own limit: constant for the life of a cursor,
+  never less than `position`, the position every `seek` and `advance*` clamps to,
+  and exactly where `is_eof` starts returning `true`. `eof().to_usize()` is the
+  snapshot length, which `remaining_len` reports only relative to the current
+  position. Purely additive.
 
 ## [0.1.0] - 2026-09-11
 
@@ -59,5 +68,6 @@ Initial release. The minimum supported Rust version is 1.85 (`edition = "2024"`)
   it. `--no-default-features` builds a pure byte reader that pulls no optional
   dependency and never touches the file path after opening.
 
-[Unreleased]: https://github.com/AECVerge/mmap-cursor/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/AECVerge/mmap-cursor/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/AECVerge/mmap-cursor/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/AECVerge/mmap-cursor/releases/tag/v0.1.0

@@ -200,7 +200,8 @@ fn line_ranges_slice_the_actual_line_bytes() {
     let index = file.line_index();
     let cursor = file.cursor();
 
-    let expected: [&[u8]; 5] = [b"alpha\n", b"b\xC3\xA9ta\r\n", b"\r", b"gamma\r", b"delta"];
+    let expected: [&[u8]; 5] =
+        [b"alpha\n", b"b\xC3\xA9ta\r\n", b"\r", b"gamma\r", b"delta"];
     assert_eq!(index.num_lines(), expected.len());
 
     for (line, want) in expected.iter().enumerate() {
@@ -221,7 +222,9 @@ fn line_ranges_slice_the_actual_line_bytes() {
     // invented byte — and every terminator stays attached to the line it ends.
     let mut rebuilt = Vec::with_capacity(doc.len());
     for line in 0..index.num_lines() {
-        rebuilt.extend_from_slice(cursor.slice(index.line_range(line).unwrap()).unwrap());
+        rebuilt.extend_from_slice(
+            cursor.slice(index.line_range(line).unwrap()).unwrap(),
+        );
     }
     assert_eq!(rebuilt, doc);
 }
@@ -301,7 +304,11 @@ fn a_position_resolves_back_to_its_line_and_column() {
         let mut probe = file.cursor();
         probe.seek(BytePos::new(offset));
         assert_eq!(probe.peek(), doc.get(offset).copied(), "offset {offset}");
-        assert_eq!(probe.remaining_len(), doc.len() - offset, "offset {offset}");
+        assert_eq!(
+            probe.remaining_len(),
+            doc.len() - offset,
+            "offset {offset}"
+        );
     }
 
     // Past the snapshot there is no line and no column to report.

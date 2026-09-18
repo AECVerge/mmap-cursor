@@ -38,7 +38,8 @@ fn opens_a_file_and_exposes_its_bytes() {
 fn preserves_binary_content_that_is_not_utf8() {
     // The crate is format-agnostic: NUL bytes and broken UTF-8 sequences are
     // just bytes, and must survive the round trip byte for byte.
-    let content: Vec<u8> = vec![0x00, 0xFF, 0xFE, 0xC3, 0x28, 0x80, b'\n', 0x00];
+    let content: Vec<u8> =
+        vec![0x00, 0xFF, 0xFE, 0xC3, 0x28, 0x80, b'\n', 0x00];
     assert!(
         std::str::from_utf8(&content).is_err(),
         "the fixture is meant to be invalid UTF-8"
@@ -223,7 +224,9 @@ fn a_missing_path_is_an_io_error_and_creates_nothing() {
     let path = dir.missing("nope.bin");
 
     match ByteFile::open(&path) {
-        Err(Error::Io(error)) => assert_eq!(error.kind(), io::ErrorKind::NotFound),
+        Err(Error::Io(error)) => {
+            assert_eq!(error.kind(), io::ErrorKind::NotFound)
+        }
         other => panic!("expected Error::Io(NotFound), got {other:?}"),
     }
 
@@ -272,7 +275,9 @@ fn an_unreadable_file_is_an_io_error() {
     }
 
     match ByteFile::open(&path) {
-        Err(Error::Io(error)) => assert_eq!(error.kind(), io::ErrorKind::PermissionDenied),
+        Err(Error::Io(error)) => {
+            assert_eq!(error.kind(), io::ErrorKind::PermissionDenied)
+        }
         other => panic!("expected Error::Io(PermissionDenied), got {other:?}"),
     }
 

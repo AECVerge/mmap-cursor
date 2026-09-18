@@ -110,7 +110,9 @@ impl Error {
     pub fn into_io(self) -> io::Error {
         match self {
             Error::Io(error) => error,
-            other => io::Error::new(io::ErrorKind::InvalidInput, other.to_string()),
+            other => {
+                io::Error::new(io::ErrorKind::InvalidInput, other.to_string())
+            }
         }
     }
 }

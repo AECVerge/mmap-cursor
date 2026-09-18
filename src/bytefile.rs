@@ -62,7 +62,8 @@ impl ByteFile {
         let file = File::open(&path)?;
         let metadata = file.metadata()?;
         let file_len = metadata.len();
-        let len = usize::try_from(file_len).map_err(|_| Error::FileTooLarge { len: file_len })?;
+        let len = usize::try_from(file_len)
+            .map_err(|_| Error::FileTooLarge { len: file_len })?;
 
         let mmap = if len == 0 {
             None

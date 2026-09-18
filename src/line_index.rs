@@ -261,7 +261,11 @@ mod tests {
             (b"\n", 2),      // one empty line, plus the final empty line
         ];
         for (bytes, expected) in cases {
-            assert_eq!(LineIndex::new(bytes).num_lines(), expected, "{bytes:?}");
+            assert_eq!(
+                LineIndex::new(bytes).num_lines(),
+                expected,
+                "{bytes:?}"
+            );
         }
     }
 

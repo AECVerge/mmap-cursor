@@ -85,7 +85,7 @@ cargo run --example diagnostic
 | Type | Purpose |
 | --- | --- |
 | `ByteFile` | A read-only mapping of one file: `bytes`, `cursor`, `line_index`, `len`, `is_empty`. |
-| `Cursor` | Moves over a snapshot: `seek`, `position`, `peek`, `peek_n_ahead`, `slice`, `slice_n_ahead`, `rest`, and the `advance*` methods. |
+| `Cursor` | Moves over a snapshot: `seek`, `position`, `eof`, `peek`, `peek_n_ahead`, `slice`, `slice_n_ahead`, `rest`, and the `advance*` methods. |
 | `LineIndex` | Position and line lookups: `line_column`, `line_for_offset`, `line_start`, `line_range`, `num_lines`. |
 | `BytePos` | A byte offset from the start of a snapshot. |
 | `ByteRange` | A half-open `[start, end)` pair of positions. |

@@ -1,0 +1,62 @@
+name: Release
+
+# Publishing is driven by the tag, and the tag is created by hand after the
+# version bump has landed on `main`: tagging is the release decision, and a
+# tagged commit is exactly what CI has already tested. `workflow_dispatch` is
+# the recovery path for an existing tag whose publish failed (for example
+# before the trusted publisher was configured), where re-running the job
+# instead of re-tagging is the only fix — hence the ref/version check below.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+# `contents: read` for the checkout, `id-token: write` so the job can request
+# the OIDC token that crates.io exchanges for a short-lived publishing token.
+# No `CARGO_REGISTRY_TOKEN` secret exists: that is the point of trusted
+# publishing, and it also means a stray `cargo publish` cannot use one.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: publish to crates.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Guards the recovery path: a manual re-run must still be sitting on a
+      # `v<version>` tag, so a dispatch from a branch cannot publish one.
+      - name: Check the ref is a version tag
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          expected="v${version}"
+          actual="${GITHUB_REF_NAME}"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::ref '$actual' does not match package version ($expected)"
+            exit 1
+          fi
+
+      # `rust-toolchain@stable` builds with the newest stable, which is what
+      # the artifact should be built and verified with; `rust-version` only
+      # promises consumers it still compiles on 1.85.
+      - uses: dtolnay/rust-toolchain@stable
+
+      # No `Swatinem/rust-cache` here on purpose: `cargo publish` builds and
+      # verifies the `.crate` tarball from scratch, so a cache would only hide
+      # a broken-from-clean build.
+      - name: Verify the crate packages and compiles
+        run: cargo publish --dry-run --locked
+
+      # This is the only step that needs credentials, so it is the only step
+      # that gets them. `id-token: write` above is what lets it request the
+      # OIDC token.
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish to crates.io
+        run: cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
